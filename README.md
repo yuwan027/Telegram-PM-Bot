@@ -6,8 +6,8 @@
 
 ### 1. 克隆项目
 ```bash
-git clone <your-repo>
-cd telegram-pm-bot
+git clone https://github.com/yuwan027/Telegram-PM-Bot
+cd Telegram-PM-Bot
 npm install
 ```
 

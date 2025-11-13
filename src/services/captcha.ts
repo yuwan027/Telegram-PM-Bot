@@ -35,55 +35,22 @@ export class CaptchaService {
     return result;
   }
 
-  // Generate image CAPTCHA using Canvas API
+  // Generate image CAPTCHA - returns image URL
   private async generateCaptchaImage(text: string): Promise<string> {
-    // For Cloudflare Workers, we'll use a simple base64 encoded SVG image
-    // This is a lightweight alternative to Canvas that works in Workers
-    const width = 200;
-    const height = 60;
+    // Use an image placeholder service that returns real PNG
+    // dummyimage.com supports dynamic text generation
+    const width = 300;
+    const height = 100;
 
-    // Add some randomization for security
-    const fontSize = 30 + Math.random() * 10;
-    const rotation = -10 + Math.random() * 20;
-    const x = 20 + Math.random() * 20;
-    const y = 35 + Math.random() * 10;
+    // Random background color (light colors)
+    const bgColor = Math.floor(Math.random() * 0xCCCCCC + 0x333333).toString(16).padStart(6, '0');
+    // Random text color (dark colors for contrast)
+    const textColor = Math.floor(Math.random() * 0x666666).toString(16).padStart(6, '0');
 
-    // Generate random background color
-    const bgColor = `rgb(${200 + Math.random() * 55}, ${200 + Math.random() * 55}, ${200 + Math.random() * 55})`;
+    // Build URL with text
+    const url = `https://dummyimage.com/${width}x${height}/${bgColor}/${textColor}.png&text=${encodeURIComponent(text)}`;
 
-    // Generate random text color
-    const textColor = `rgb(${Math.random() * 100}, ${Math.random() * 100}, ${Math.random() * 100})`;
-
-    // Add random lines for noise
-    let noiseLines = '';
-    for (let i = 0; i < 5; i++) {
-      const x1 = Math.random() * width;
-      const y1 = Math.random() * height;
-      const x2 = Math.random() * width;
-      const y2 = Math.random() * height;
-      const lineColor = `rgb(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255})`;
-      noiseLines += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${lineColor}" stroke-width="1" opacity="0.3"/>`;
-    }
-
-    const svg = `
-      <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-        <rect width="100%" height="100%" fill="${bgColor}"/>
-        ${noiseLines}
-        <text x="${x}" y="${y}" font-family="Arial, sans-serif" font-size="${fontSize}"
-              fill="${textColor}" font-weight="bold"
-              transform="rotate(${rotation} ${x + 50} ${y})">
-          ${text.split('').map((char, i) => {
-            const charRotation = -5 + Math.random() * 10;
-            const charX = x + i * 28;
-            return `<tspan transform="rotate(${charRotation} ${charX} ${y})" x="${charX}">${char}</tspan>`;
-          }).join('')}
-        </text>
-      </svg>
-    `;
-
-    // Convert SVG to base64
-    const base64 = btoa(unescape(encodeURIComponent(svg)));
-    return `data:image/svg+xml;base64,${base64}`;
+    return url;
   }
 
   // Default quiz questions pool
@@ -138,8 +105,12 @@ export class CaptchaService {
 
   // Send image CAPTCHA
   private async sendImageCaptcha(chatId: number, username?: string, firstName?: string, lastName?: string): Promise<void> {
+    console.log('[Image CAPTCHA] Starting to send image captcha to', chatId);
     const captchaText = this.generateCaptchaText();
-    const imageData = await this.generateCaptchaImage(captchaText);
+    console.log('[Image CAPTCHA] Generated text:', captchaText);
+
+    const imageUrl = await this.generateCaptchaImage(captchaText);
+    console.log('[Image CAPTCHA] Generated image URL:', imageUrl);
 
     // Store session
     const session: CaptchaSession = {
@@ -156,12 +127,15 @@ export class CaptchaService {
     await this.kv.put(`captcha-${chatId}`, JSON.stringify(session), {
       expirationTtl: this.timeout / 1000,
     });
+    console.log('[Image CAPTCHA] Session stored in KV');
 
-    await this.telegram.sendPhoto({
+    console.log('[Image CAPTCHA] Sending photo to Telegram...');
+    const result = await this.telegram.sendPhoto({
       chat_id: chatId,
-      photo: imageData,
+      photo: imageUrl,
       caption: `🔐 验证码验证\n\n请输入图片中的字符（不区分大小写）\n\n⏱ ${this.timeout / 1000}秒内有效\n📝 剩余尝试次数: ${this.maxAttempts}`,
     });
+    console.log('[Image CAPTCHA] Telegram API response:', JSON.stringify(result));
   }
 
   // Send quiz CAPTCHA

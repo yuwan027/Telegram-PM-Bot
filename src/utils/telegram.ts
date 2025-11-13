@@ -61,10 +61,55 @@ export class TelegramAPI {
 
   async sendPhoto(params: {
     chat_id: number | string;
-    photo: string;
+    photo: string | Blob;
     caption?: string;
     reply_markup?: InlineKeyboardMarkup;
   }): Promise<TelegramResponse> {
+    // If photo is a data URI (any image type), upload via multipart
+    if (typeof params.photo === 'string' && params.photo.startsWith('data:image/')) {
+      const formData = new FormData();
+      formData.append('chat_id', params.chat_id.toString());
+
+      // Extract MIME type and base64 data
+      const matches = params.photo.match(/^data:([^;]+);base64,(.+)$/);
+      if (!matches) {
+        throw new Error('Invalid data URI format');
+      }
+
+      const mimeType = matches[1];
+      const base64Data = matches[2];
+
+      // Decode base64 to binary
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      // Create blob with correct MIME type
+      const fileBlob = new Blob([bytes], { type: mimeType });
+
+      // Determine file extension from MIME type
+      const ext = mimeType.split('/')[1] || 'jpg';
+      formData.append('photo', fileBlob, `photo.${ext}`);
+
+      if (params.caption) {
+        formData.append('caption', params.caption);
+      }
+
+      if (params.reply_markup) {
+        formData.append('reply_markup', JSON.stringify(params.reply_markup));
+      }
+
+      const response = await fetch(this.apiUrl('sendPhoto'), {
+        method: 'POST',
+        body: formData,
+      });
+
+      return response.json();
+    }
+
+    // Otherwise use JSON (for URLs or file_ids)
     return this.requestTelegram('sendPhoto', this.makeReqBody(params));
   }
 

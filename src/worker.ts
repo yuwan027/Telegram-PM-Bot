@@ -147,13 +147,20 @@ async function onMessage(message: TelegramMessage, env: Env): Promise<void> {
 
   // Handle /start command
   if (message.text === '/start') {
+    console.log('[/start] Received /start from user:', message.chat.id);
     await telegram.sendMessage({
       chat_id: message.chat.id,
       text: config.WELCOME_MESSAGE,
     });
+    console.log('[/start] Welcome message sent');
 
     // Send CAPTCHA if enabled and not admin
+    console.log('[/start] CAPTCHA_ENABLED:', config.CAPTCHA_ENABLED);
+    console.log('[/start] CAPTCHA_MODE:', config.CAPTCHA_MODE);
+    console.log('[/start] User ID:', message.chat.id.toString(), 'Admin ID:', config.ADMIN_UID);
+
     if (config.CAPTCHA_ENABLED && message.chat.id.toString() !== config.ADMIN_UID) {
+      console.log('[/start] Creating CAPTCHA service...');
       const captcha = new CaptchaService(
         env.PMBOT_KV,
         telegram,
@@ -164,13 +171,17 @@ async function onMessage(message: TelegramMessage, env: Env): Promise<void> {
       );
 
       const isVerified = await captcha.isVerified(message.chat.id);
+      console.log('[/start] Is user verified?', isVerified);
+
       if (!isVerified) {
+        console.log('[/start] Sending CAPTCHA...');
         await captcha.sendCaptcha(
           message.chat.id,
           message.from?.username,
           message.from?.first_name,
           message.from?.last_name
         );
+        console.log('[/start] CAPTCHA sent');
       }
     }
     return;
@@ -273,18 +284,22 @@ async function handleGuestMessage(
     if (!isVerified) {
       // If there's an active session and user sent text, try to verify
       if (hasActiveSession && message.text) {
-        await captcha.verifyCaptcha(chatId, message.text);
+        const verified = await captcha.verifyCaptcha(chatId, message.text);
+        if (verified) {
+          await telegram.sendMessage({
+            chat_id: chatId,
+            text: '✅ 验证成功！您现在可以发送消息了。',
+          });
+        }
         return;
       }
 
-      // No active session, send new CAPTCHA
+      // No active session, prompt user to use /start
       if (!hasActiveSession) {
-        await captcha.sendCaptcha(
-          chatId,
-          message.from?.username,
-          message.from?.first_name,
-          message.from?.last_name
-        );
+        await telegram.sendMessage({
+          chat_id: chatId,
+          text: '⚠️ 您尚未验证身份。\n\n请先发送 /start 命令开始验证流程。',
+        });
       }
       return;
     }
