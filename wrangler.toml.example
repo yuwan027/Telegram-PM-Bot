@@ -1,0 +1,19 @@
+name = "telegram-pm-bot"
+main = "dist/worker.js"
+compatibility_date = "2024-11-13"
+
+[[kv_namespaces]]
+binding = "PMBOT_KV"
+# id will be set after running setup-kv script
+id = ""
+
+[vars]
+ENV_BOT_TOKEN = "your-telegram-bot-token"
+ENV_BOT_SECRET = "your-random-secret-string"
+ENV_ADMIN_UID = "your-telegram-user-id"
+CAPTCHA_MODE = "quiz"
+CAPTCHA_ENABLED = "true"
+CAPTCHA_TIMEOUT = "300000"
+CAPTCHA_MAX_ATTEMPTS = "3"
+WELCOME_MESSAGE = "欢迎使用私聊机器人！完成验证后，您发送的消息才会被看到。"
+QUIZ_QUESTIONS = "[{\"question\":\"你是真人吗\",\"options\":[\"我不是真人🙅\",\"我是真人👨\",\"我是机器人🤖\",\"我是伪人👻\"],\"correctAnswer\":1}]"

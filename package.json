@@ -1,0 +1,34 @@
+{
+  "name": "telegram-pm-bot",
+  "version": "2.0.0",
+  "description": "A Cloudflare Worker-based Telegram PM bot with CAPTCHA verification",
+  "main": "dist/worker.js",
+  "type": "module",
+  "scripts": {
+    "setup-kv": "bash scripts/setup-kv.sh",
+    "setup": "npm install && npm run setup-kv && npm run build",
+    "dev": "wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "cloudflare",
+    "worker",
+    "forward"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "@types/node": "^22.10.1",
+    "typescript": "^5.7.2",
+    "wrangler": "^3.87.0"
+  },
+  "dependencies": {
+    "canvas": "^2.11.2"
+  }
+}

@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Wrangler configuration (contains secrets)
+wrangler.toml
+
+# Build output
+dist/
+
+# Wrangler
+.wrangler/
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+*.log
+
+# OS
+.DS_Store
